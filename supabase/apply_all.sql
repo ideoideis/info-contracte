@@ -11,6 +11,7 @@ create table if not exists public.echipa_contracte (
   tip text not null,                 -- 'fizica' | 'juridica'
 
   -- persoană fizică (membru echipă)
+  department text,
   nume_complet text,
   cnp text,
   serie_ci text,

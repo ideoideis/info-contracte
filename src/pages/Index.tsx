@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Plus, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,20 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 type Tip = "" | "fizica" | "juridica";
 
+// Departamentele echipei ideo ideis. CI-urile se organizează pe departament în
+// bucket-ul privat `echipa-ci`: "echipa-ci/<Departament>/<Nume>.<ext>".
+const DEPARTMENTS = [
+  "Directori",
+  "Artistic",
+  "Comunicare",
+  "Foto",
+  "Video",
+  "Welcoming",
+  "Tehnic",
+  "Producție",
+  "Financiar",
+] as const;
+
 export default function Index() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -50,6 +65,7 @@ export default function Index() {
   const [banca, setBanca] = useState("");
 
   // ── persoană fizică ──
+  const [department, setDepartment] = useState("");
   const [numeComplet, setNumeComplet] = useState("");
   const [cnp, setCnp] = useState("");
   const [serieCi, setSerieCi] = useState("");
@@ -74,6 +90,7 @@ export default function Index() {
     if (!tip) e.tip = REQUIRED;
 
     if (tip === "fizica") {
+      if (!has(department)) e.department = REQUIRED;
       if (!has(numeComplet)) e.numeComplet = REQUIRED;
       if (!has(cnp)) e.cnp = REQUIRED;
       if (!has(serieCi)) e.serieCi = REQUIRED;
@@ -101,7 +118,7 @@ export default function Index() {
     return e;
   }, [
     tip, telefon, email, contBancar, banca,
-    numeComplet, cnp, serieCi, numarCi, ciValabilitate, ciFile,
+    department, numeComplet, cnp, serieCi, numarCi, ciValabilitate, ciFile,
     numeFirma, cui, nrRegCom, sediuSocial, acord,
   ]);
 
@@ -135,16 +152,20 @@ export default function Index() {
 
     setSubmitting(true);
     try {
-      // Upload the CI scan into the PRIVATE `echipa-ci` bucket, named after the
-      // person: "<nume complet>.<ext>". The bucket is INSERT-only for the public
-      // form (no overwrite), so on a name clash we fall back to "name (2)",
-      // "name (3)", … instead of overwriting or failing.
+      // Upload the CI scan into the PRIVATE `echipa-ci` bucket, organised per
+      // department and named after the person:
+      //   "echipa-ci/<Departament>/<nume complet>.<ext>".
+      // The bucket is INSERT-only for the public form (no overwrite), so on a
+      // name clash we fall back to "name (2)", "name (3)", … instead of
+      // overwriting or failing.
       let ci_path: string | null = null;
       if (tip === "fizica" && ciFile) {
+        const folder = safeName(department) || "fara-departament";
         const base = safeName(numeComplet) || "ci";
         const ext = ciFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
         for (let n = 1; n < 50; n++) {
-          const key = n === 1 ? `${base}.${ext}` : `${base} (${n}).${ext}`;
+          const name = n === 1 ? `${base}.${ext}` : `${base} (${n}).${ext}`;
+          const key = `${folder}/${name}`;
           const { error: upErr } = await supabase.storage
             .from(ECHIPA_CI_BUCKET)
             .upload(key, ciFile, { contentType: ciFile.type, upsert: false });
@@ -162,6 +183,7 @@ export default function Index() {
         tip === "fizica"
           ? {
               tip,
+              department,
               nume_complet: numeComplet,
               cnp,
               serie_ci: serieCi,
@@ -205,28 +227,97 @@ export default function Index() {
     }
   };
 
+  // Reset everything so a coordinator can submit again for the next person.
+  const resetForm = () => {
+    setSubmitted(false);
+    setShowErrors(false);
+    setTip("");
+    setTelefon(""); setEmail(""); setContBancar(""); setBanca("");
+    setDepartment(""); setNumeComplet(""); setCnp(""); setSerieCi(""); setNumarCi("");
+    setCiEliberatDe(""); setCiValabilitate(""); setCiFile(null);
+    setNumeFirma(""); setCui(""); setNrRegCom(""); setSediuSocial(""); setReprezentant("");
+    setAcord(false);
+    window.scrollTo({ top: 0 });
+  };
+
   if (submitted) {
+    // Little hearts that drift up behind the message. Fixed positions so the
+    // animation is deterministic (no Math.random).
+    const hearts = [
+      { left: "8%", delay: 0, size: "2rem", dur: 5.5 },
+      { left: "22%", delay: 1.2, size: "1.25rem", dur: 6.5 },
+      { left: "38%", delay: 0.6, size: "1.6rem", dur: 5 },
+      { left: "60%", delay: 1.8, size: "1.25rem", dur: 6 },
+      { left: "74%", delay: 0.3, size: "2.2rem", dur: 5.8 },
+      { left: "88%", delay: 2.1, size: "1.5rem", dur: 6.8 },
+    ];
     return (
-      <main className="min-h-screen bg-primary text-primary-foreground flex items-center justify-center px-6 py-24">
-        <div className="text-center max-w-xl">
-          <span className="micro-label">ideo ideis · contracte</span>
+      <main className="relative min-h-screen overflow-hidden bg-primary text-primary-foreground flex items-center justify-center px-6 py-24">
+        {hearts.map((h, i) => (
+          <motion.span
+            key={i}
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 select-none opacity-30"
+            style={{ left: h.left, fontSize: h.size }}
+            initial={{ y: "10vh", opacity: 0 }}
+            animate={{ y: "-95vh", opacity: [0, 0.45, 0] }}
+            transition={{ duration: h.dur, delay: h.delay, repeat: Infinity, ease: "easeInOut" }}
+          >
+            ❤️
+          </motion.span>
+        ))}
+
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0, y: 16 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 16 }}
+          className="relative text-center max-w-xl"
+        >
+          <motion.div
+            aria-hidden
+            className="text-7xl md:text-8xl leading-none"
+            animate={{ scale: [1, 1.18, 1], rotate: [0, -8, 8, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 0.7 }}
+          >
+            🎉
+          </motion.div>
+
+          <span className="micro-label mt-6 inline-block">ideo ideis · echipa</span>
           <h1 className="mt-3 text-5xl md:text-6xl font-bold tracking-tight">
-            Mulțumim!
+            Gata, te-am notat!
           </h1>
           <span className="red-line mx-auto mt-6 w-24" style={{ background: "white" }} />
           <p className="mt-8 text-base md:text-lg leading-relaxed opacity-95">
-            Datele tale de contract au fost trimise cu succes. Le vom folosi
-            doar pentru întocmirea contractelor și a plăților.
+            Datele tale au ajuns cu bine la noi și le folosim doar pentru
+            contracte și plăți. Acum poți să te întorci la treburile importante.
+            Festivalul nu se face singur. 💪
           </p>
-        </div>
+          <p className="mt-7 text-lg md:text-xl font-bold">
+            Te pupăm,
+            <br />
+            echipa ideo ideis ❤️
+          </p>
+
+          <button
+            type="button"
+            onClick={resetForm}
+            className={cn(
+              "mt-10 inline-flex items-center justify-center gap-2 px-6 py-3",
+              "bg-white text-primary hover:bg-white/90 transition-colors text-sm font-medium"
+            )}
+          >
+            <Plus className="size-4" />
+            trimite pentru altcineva
+          </button>
+        </motion.div>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-primary text-primary-foreground">
-      <div className="max-w-3xl mx-auto px-6 md:px-10 pb-16 md:pb-24">
-        {/* Eticheta — logo ideo ideis */}
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pb-16 md:pb-24">
+        {/* Eticheta: logo ideo ideis */}
         <div className="mb-12 inline-block bg-white p-3 md:p-4">
           <img
             src={etichetaLogo}
@@ -269,7 +360,7 @@ export default function Index() {
                 <SelectValue placeholder="…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fizica">persoană fizică (membru echipă)</SelectItem>
+                <SelectItem value="fizica">persoană fizică</SelectItem>
                 <SelectItem value="juridica">firmă (persoană juridică)</SelectItem>
               </SelectContent>
             </Select>
@@ -282,6 +373,27 @@ export default function Index() {
                 <h2 className="text-3xl md:text-4xl font-bold text-primary lowercase">
                   date personale
                 </h2>
+
+                <Field
+                  id="department"
+                  label="departament"
+                  required
+                  helper="CI-ul tău va fi organizat în folderul acestui departament"
+                  error={fieldError("department")}
+                >
+                  <Select value={department} onValueChange={setDepartment} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="alege departamentul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
 
                 <Field id="numeComplet" label="nume complet" required error={fieldError("numeComplet")}>
                   <Input

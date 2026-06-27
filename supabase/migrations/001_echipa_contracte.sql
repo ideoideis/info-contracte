@@ -9,6 +9,7 @@ create table if not exists public.echipa_contracte (
   tip text not null,                 -- 'fizica' | 'juridica'
 
   -- ── persoană fizică (membru echipă) ──
+  department text,                   -- echipă: Tehnic, Welcoming, Producție, … (CI scans grouped by it)
   nume_complet text,                 -- also used to name the uploaded CI scan
   cnp text,
   serie_ci text,
