@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { LegalDialog } from "@/components/LegalDialog";
 import termeniMd from "@/content/termeni.md?raw";
 import confidentialitateMd from "@/content/confidentialitate.md?raw";
 import etichetaLogo from "@/assets/eticheta-ideoideis.png";
+import echipaPhoto from "@/assets/echipa-ideoideis.jpg";
 
 const REQUIRED = "câmp obligatoriu";
 
@@ -73,6 +74,7 @@ export default function Index() {
   const [ciEliberatDe, setCiEliberatDe] = useState("");
   const [ciValabilitate, setCiValabilitate] = useState("");
   const [ciFile, setCiFile] = useState<File | null>(null);
+  const [nrInmatriculare, setNrInmatriculare] = useState("");
 
   // ── persoană juridică (firmă) ──
   const [numeFirma, setNumeFirma] = useState("");
@@ -191,6 +193,7 @@ export default function Index() {
               ci_eliberat_de: ciEliberatDe || null,
               ci_valabilitate: ciValabilitate,
               ci_path,
+              nr_inmatriculare: nrInmatriculare || null,
               telefon,
               email,
               cont_bancar: contBancar,
@@ -204,6 +207,7 @@ export default function Index() {
               nr_reg_com: nrRegCom,
               sediu_social: sediuSocial,
               reprezentant: reprezentant || null,
+              nr_inmatriculare: nrInmatriculare || null,
               telefon,
               email,
               cont_bancar: contBancar,
@@ -219,25 +223,18 @@ export default function Index() {
       toast.success("Mulțumim! Datele au fost trimise.");
     } catch (err) {
       console.error("[echipa_contracte] submit failed", err);
-      toast.error("A apărut o eroare la trimitere.", {
-        description: err instanceof Error ? err.message : String(err),
-      });
+      // Supabase errors are plain objects (not Error instances), so pull the
+      // real message out instead of rendering a useless "[object Object]".
+      const description =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message)
+          : JSON.stringify(err);
+      toast.error("A apărut o eroare la trimitere.", { description });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Reset everything so a coordinator can submit again for the next person.
-  const resetForm = () => {
-    setSubmitted(false);
-    setShowErrors(false);
-    setTip("");
-    setTelefon(""); setEmail(""); setContBancar(""); setBanca("");
-    setDepartment(""); setNumeComplet(""); setCnp(""); setSerieCi(""); setNumarCi("");
-    setCiEliberatDe(""); setCiValabilitate(""); setCiFile(null);
-    setNumeFirma(""); setCui(""); setNrRegCom(""); setSediuSocial(""); setReprezentant("");
-    setAcord(false);
-    window.scrollTo({ top: 0 });
   };
 
   if (submitted) {
@@ -273,17 +270,28 @@ export default function Index() {
           transition={{ type: "spring", stiffness: 200, damping: 16 }}
           className="relative text-center max-w-xl"
         >
-          <motion.div
-            aria-hidden
-            className="text-7xl md:text-8xl leading-none"
-            animate={{ scale: [1, 1.18, 1], rotate: [0, -8, 8, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 0.7 }}
+          {/* Framed team photo — white "polaroid" box that gently floats, with a
+              little 🎉 badge tucked in the corner. */}
+          <motion.figure
+            className="relative mx-auto mb-9 w-full max-w-md bg-white p-3 pb-4 shadow-2xl"
+            animate={{ y: [0, -9, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
           >
-            🎉
-          </motion.div>
+            <img src={echipaPhoto} alt="Echipa ideo ideis" className="w-full h-auto" />
+            <figcaption className="mt-3 text-xs font-medium uppercase tracking-[0.15em] text-primary">
+              echipa ideo ideis
+            </figcaption>
+            <motion.span
+              aria-hidden
+              className="absolute -right-4 -top-5 text-4xl md:text-5xl leading-none"
+              animate={{ scale: [1, 1.2, 1], rotate: [0, -10, 10, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 0.7 }}
+            >
+              🎉
+            </motion.span>
+          </motion.figure>
 
-          <span className="micro-label mt-6 inline-block">ideo ideis · echipa</span>
-          <h1 className="mt-3 text-5xl md:text-6xl font-bold tracking-tight">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
             Gata, te-am notat!
           </h1>
           <span className="red-line mx-auto mt-6 w-24" style={{ background: "white" }} />
@@ -298,17 +306,26 @@ export default function Index() {
             echipa ideo ideis ❤️
           </p>
 
-          <button
-            type="button"
-            onClick={resetForm}
-            className={cn(
-              "mt-10 inline-flex items-center justify-center gap-2 px-6 py-3",
-              "bg-white text-primary hover:bg-white/90 transition-colors text-sm font-medium"
-            )}
-          >
-            <Plus className="size-4" />
-            trimite pentru altcineva
-          </button>
+          {/* Reminder: formularul de scenografie (Steff pregătește o surpriză) */}
+          <div className="mt-10 border-t border-white/25 pt-7">
+            <p className="text-sm md:text-base leading-relaxed opacity-95">
+              P.S. Ai completat deja formularul de <strong>scenografie</strong>?
+              Steff pregătește o surpriză drăguță pentru toți. Dacă încă nu l-ai
+              completat:
+            </p>
+            <a
+              href="https://forms.gle/u2d8Nv8GnX7ns1w17"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "mt-4 inline-flex items-center gap-2 px-5 py-2.5",
+                "bg-white text-primary hover:bg-white/90 transition-colors text-sm font-medium"
+              )}
+            >
+              <ExternalLink className="size-4" />
+              formularul de scenografie
+            </a>
+          </div>
         </motion.div>
       </main>
     );
@@ -328,16 +345,17 @@ export default function Index() {
 
         {/* Hero / intro */}
         <header>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[0.95]">
+          <span className="micro-label">echipa ideo ideis #21</span>
+          <h1 className="mt-3 text-5xl md:text-7xl font-bold tracking-tight leading-[0.95]">
             date pentru
             <br />
             contracte
           </h1>
           <div className="mt-10 space-y-4 max-w-2xl text-base md:text-lg leading-relaxed">
             <p>
-              Pentru a putea încheia contractele și a face plățile fără
-              întârzieri, avem nevoie de câteva date de la fiecare membru al
-              echipei și de la firmele cu care colaborăm.
+              Salut, <strong>echipă</strong>! Pentru a putea încheia contractele
+              și a face plățile fără întârzieri, avem nevoie de câteva date de la
+              fiecare membru al echipei și de la firmele cu care colaborăm.
             </p>
             <p>
               Te rugăm să verifici că tot ce completezi este corect și complet
@@ -378,7 +396,6 @@ export default function Index() {
                   id="department"
                   label="departament"
                   required
-                  helper="CI-ul tău va fi organizat în folderul acestui departament"
                   error={fieldError("department")}
                 >
                   <Select value={department} onValueChange={setDepartment} required>
@@ -564,6 +581,58 @@ export default function Index() {
                 setBanca={setBanca}
                 fieldError={fieldError}
               />
+            </div>
+          )}
+
+          {/* ───────── cazare + transport (pentru ambele tipuri) ───────── */}
+          {tip && (
+            <div className="space-y-12">
+              {/* ───────── vii cu mașina? ───────── */}
+              <section className="space-y-8">
+                <h2 className="text-3xl md:text-4xl font-bold text-primary lowercase">
+                  vii cu mașina?
+                </h2>
+                <Field
+                  id="nrInmatriculare"
+                  label="nr. de înmatriculare"
+                  helper="opțional, completează doar dacă vii cu mașina"
+                >
+                  <Input
+                    value={nrInmatriculare}
+                    onChange={(e) => setNrInmatriculare(e.target.value)}
+                    placeholder="ex. B 123 ABC"
+                  />
+                </Field>
+              </section>
+
+              {/* ───────── cazare ───────── */}
+              <section className="space-y-5 border-l-2 border-primary pl-6">
+                <h2 className="text-3xl md:text-4xl font-bold text-primary lowercase">
+                  cazare
+                </h2>
+                <p className="text-sm md:text-base leading-relaxed text-foreground/90">
+                  Ai nevoie de cazare? Ai completat deja schema de cazare pentru
+                  White House?
+                </p>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/19KV4fMSG7dAenh3xwirwMBMas8C9SX5_MduH1rPE5I4/edit?gid=0#gid=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2",
+                    "bg-primary text-primary-foreground hover:bg-primary/90 transition-colors",
+                    "text-sm font-medium"
+                  )}
+                >
+                  <ExternalLink className="size-4" />
+                  schema de cazare White House
+                </a>
+                <p className="text-xs italic text-muted-foreground leading-relaxed">
+                  Reminder: deși în formularul ăsta vrem să îți trimitem bani, nu
+                  prea stăm bine cu ei și încercăm să ocupăm toate spațiile de
+                  cazare oferite de White.
+                </p>
+              </section>
             </div>
           )}
 

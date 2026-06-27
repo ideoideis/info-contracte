@@ -17,6 +17,7 @@ create table if not exists public.echipa_contracte (
   ci_eliberat_de text,               -- emitent (SPCLEP / poliție)
   ci_valabilitate text,              -- valabil până la (CI în curs de valabilitate)
   ci_path text,                      -- storage key in the private `echipa-ci` bucket
+  nr_inmatriculare text,             -- numărul mașinii (opțional, dacă vine cu mașina)
 
   -- ── persoană juridică (firmă) — date de facturare ──
   nume_firma text,

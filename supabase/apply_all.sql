@@ -19,6 +19,7 @@ create table if not exists public.echipa_contracte (
   ci_eliberat_de text,
   ci_valabilitate text,
   ci_path text,
+  nr_inmatriculare text,
 
   -- persoană juridică (firmă) — date de facturare
   nume_firma text,
@@ -37,6 +38,13 @@ create table if not exists public.echipa_contracte (
 
   created_at timestamptz not null default now()
 );
+
+-- Self-heal: if the table was created from an earlier version of this script,
+-- `create table if not exists` above is a no-op and would NOT add later columns.
+-- These idempotent ALTERs make re-running this file fully sync the schema.
+alter table public.echipa_contracte
+  add column if not exists department text,
+  add column if not exists nr_inmatriculare text;
 
 alter table public.echipa_contracte enable row level security;
 
