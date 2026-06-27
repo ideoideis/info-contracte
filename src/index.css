@@ -1,0 +1,233 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Söhne — brand typeface (files in /public/fonts/) */
+@font-face {
+  font-family: 'Söhne';
+  src: url('./assets/fonts/soehne-buch.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Söhne';
+  src: url('./assets/fonts/soehne-halbfett.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    /* Slide layout — fixed spacing, identical on all screen sizes */
+    --slide-pt: 2rem;
+    --slide-px: 2.5rem;
+    --slide-py: 2rem;
+    --slide-pr: 4.5rem;
+
+    /* Festival brand */
+    --brand-red: 340.3 100% 45.3%;    /* PANTONE 1925 C · #E7004C · C3 M100 Y63 K0 */
+    --brand-near-black: 210 4% 15%;   /* #222324 */
+    --brand-near-black-2: 233 7% 19%; /* #2c2d34 */
+    --brand-white: 0 0% 100%;
+    --brand-off-white: 0 0% 96%;
+
+    /* Design system tokens */
+    --background: var(--brand-white);
+    --foreground: var(--brand-near-black);
+
+    --card: var(--brand-white);
+    --card-foreground: var(--brand-near-black);
+
+    --popover: var(--brand-white);
+    --popover-foreground: var(--brand-near-black);
+
+    --primary: var(--brand-red);
+    --primary-foreground: var(--brand-white);
+
+    --secondary: var(--brand-near-black);
+    --secondary-foreground: var(--brand-white);
+
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: var(--brand-red);
+    --accent-foreground: var(--brand-white);
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: var(--brand-red);
+
+    --radius: 0rem; /* No rounded corners */
+
+    --sidebar-background: var(--brand-near-black);
+    --sidebar-foreground: var(--brand-white);
+    --sidebar-primary: var(--brand-red);
+    --sidebar-primary-foreground: var(--brand-white);
+    --sidebar-accent: var(--brand-near-black-2);
+    --sidebar-accent-foreground: var(--brand-white);
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: var(--brand-red);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Söhne', 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+    /* Prevent double-tap zoom when swiping deck on mobile */
+    touch-action: manipulation;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Söhne', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent pull-to-refresh and overscroll on mobile */
+    overscroll-behavior-y: none;
+  }
+
+  /* No rounded corners anywhere */
+  *, *::before, *::after {
+    border-radius: 0 !important;
+  }
+
+  /* Swimathon slide — timeline circles and logo box need rounded corners */
+  .slide-swimathon .timeline-marker {
+    border-radius: 50% !important;
+  }
+  .slide-swimathon .swimathon-logo {
+    border-radius: 12px !important;
+  }
+}
+
+/* Scroll snap container */
+.snap-container {
+  height: 100dvh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Safe area for notched phones */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+
+.snap-slide {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/*
+ * On narrow viewports the slide container is still 16:9 but physically very
+ * short (e.g. 375×211 on a phone).  Instead of letting content reflow to that
+ * tiny box we render it at the *design* resolution (960×540) and CSS-scale it
+ * to fit, producing a miniature but complete version of the desktop slide.
+ *
+ * --slide-scale is set by JS (useSlideScale hook) because CSS calc() cannot
+ * produce a unitless number from viewport units for scale().
+ */
+.slide-content-inner {
+  width: 100%;
+  height: 100%;
+  transform-origin: top left;
+}
+
+@media (max-width: 959px) {
+  .slide-content-inner {
+    width: 960px;
+    height: 540px;
+    transform: scale(var(--slide-scale, 0.5));
+  }
+}
+
+/* Micro label / eyebrow */
+.micro-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Red accent line */
+.red-line {
+  display: block;
+  height: 2px;
+  background-color: hsl(var(--brand-red));
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid hsl(var(--brand-red));
+  outline-offset: 2px;
+}
+
+/* Prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print / PDF export — one slide per page */
+@page {
+  size: 13.333in 7.5in;
+  margin: 0;
+}
+
+@media print {
+  .no-print,
+  header,
+  nav[aria-label="Navigare slide-uri"] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    /* Preserve exact colors in PDF — prevents browser from lightening/desaturating */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .snap-container {
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-type: none !important;
+  }
+
+  .snap-slide {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  .snap-slide:last-child {
+    page-break-after: auto;
+  }
+}
